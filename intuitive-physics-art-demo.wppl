@@ -1,0 +1,188 @@
+// include dependencies
+_top.paper || $.getScript('https://probmods.org/assets/js/paper-full.js')
+_top.Draw || $.getScript('https://probmods.org/assets/js/draw.js')
+_top.Box2D || $.getScript('https://probmods.org/assets/js/box2d.js')
+_top.physics || $.getScript('https://probmods.org/assets/js/physics.js')
+
+// Given that the blocks appear to be in a particular arrangement (posterior), we infer the prior (where the blocks really are), leveraging our generative model of our own perception: perceived position = real position + random value, so we infer that real position = perceived position - random value.
+
+var xCenter = worldWidth / 2
+var ground = {
+  shape: 'rect',
+  static: true,
+  dims: [worldWidth, 10],
+  x: worldWidth/2,
+  y: worldHeight+6
+}
+var dim = function() { return uniform(10, 50) }
+var xpos = function (prevBlock) {
+  var prevW = prevBlock.dims[0]
+  var prevX = prevBlock.x
+  return uniform(prevX - prevW, prevX + prevW)
+}
+
+var ypos = function (prevBlock, h) {
+  var prevY = prevBlock.y
+  var prevH = prevBlock.dims[1]
+  return prevY - (prevH + h)
+}
+
+var addBlock = function (prevBlock, isFirst) {
+  var w = dim()
+  var h = dim()
+  return {
+    shape: 'rect',
+    static: false,
+    dims: [w, h],
+    x: isFirst ? xCenter : xpos(prevBlock),
+    y: ypos(prevBlock, h)
+  }
+}
+
+var makeTowerWorld = function() {
+  var block1 = addBlock(ground, true)
+  var block2 = addBlock(block1, false)
+  var block3 = addBlock(block2, false)
+  var block4 = addBlock(block3, false)
+  var block5 = addBlock(block4, false)
+  return [ground, block1, block2, block3, block4, block5]
+};
+
+
+var listMin = function (xs) {
+  if (xs.length == 1) {
+    return xs[0]
+  } else {
+    return Math.min(xs[0], listMin(rest(xs)))
+  }
+}
+
+var hasTowerFallen = function (initialW, finalW) {
+  var highestY = function (w) {
+    return listMin(map(function (obj) { obj.y }, w))
+  }
+  var approxEqual = function (a, b) {
+    return Math.abs(a - b) < 1.0
+  }
+  return !approxEqual(highestY(initialW), highestY(finalW))
+}
+
+var doesTowerFall = function (world) {
+  var initialWorld = world
+  var finalWorld = physics.run(1000, initialWorld)
+  return hasTowerFallen(initialWorld, finalWorld)
+}
+
+var noisify = function (world) {
+  var perturbX = function (obj) {
+    var noiseWidth = 20
+    
+    if (obj.static) {
+      return obj
+    } else {
+      return _.extend({}, obj, {x: uniform(obj.x - noiseWidth, obj.x + noiseWidth) })
+    }
+  }
+  return map(perturbX, world)
+}
+
+var findSurprisinglyStableTower = function() {
+  var world = makeTowerWorld()
+  condition(doesTowerFall(world) === false)
+  
+  var noisyWorld = noisify(world)
+  condition(doesTowerFall(noisyWorld) === true)
+  condition(doesTowerFall(noisify(world)) === true)
+  return { percept: noisyWorld, real: world }
+}
+
+var surprisinglyStableTower = Infer({method: 'MCMC', samples: 100}, function() {
+  return findSurprisinglyStableTower()
+})
+var sampleSSTower = sample(surprisinglyStableTower)
+physics.animate(1000, sampleSSTower.real)
+physics.animate(1000, sampleSSTower.percept)
+
+// find predicted probability that tower will fall (sample tower can be conditioned on whether it really falls or seems to fall)
+viz(Infer({method: 'forward', samples: 100}, function() {
+  return doesTowerFall(noisify(sampleSSTower.real))
+}))
+
+
+// Visualizing the noisy perception of the world, indicating which versions will fall
+var drawShapes = function(canvas, drawOffset, shapes, stroke, fill, opacity) {
+  if (shapes.length == 0) { return []; }
+  var next = shapes[0];
+  if (next.shape === 'rect') {
+    var leftX = next.x - next.dims[0] + drawOffset[0]
+    var topY = next.y - next.dims[1] + drawOffset[1]
+    canvas.rectangle(leftX, topY, leftX + next.dims[0]*2, topY + next.dims[1]*2, stroke, fill, opacity);
+  } else {
+    console.warn('drawing a "', next.shape, '" shape not yet implemented! drawing nothing instead');
+  }
+  drawShapes(canvas, drawOffset, shapes.slice(1), stroke, fill, opacity);
+};
+
+var nSamples = 15 // 25
+var visualizeWorldPerception = function(canvas, drawOffset, world, showRealBlocks) {
+  var ground = world[0]
+  if (showRealBlocks) {
+    var blocks = world.slice(1)
+    drawShapes(canvas, drawOffset, blocks, 'black', 'white', 1.0)
+  }
+  
+  drawShapes(canvas, drawOffset, [ground], 'black', 'black', 1.0)
+  mapN(function() {
+    var noisedWorld = noisify(world)
+    var blocks = noisedWorld.slice(1)
+    var blockColor = doesTowerFall(noisedWorld) ? 'red' : 'blue'
+    drawShapes(canvas, drawOffset, blocks, blockColor, blockColor, 1.0 / nSamples)
+  }, nSamples)
+  
+  return // return nothing so that there isn't something logged to the console if this function is called last in the cell
+}
+
+var canvas = Draw(worldWidth * 2, worldHeight, true)
+visualizeWorldPerception(canvas, [0,0], sampleSSTower.real, true)
+
+// doing some artistic interpretation!
+var makeStableTowerWorld = function () {
+  return sample(Infer({method: 'MCMC', samples: 100}, function() {
+    var world = makeTowerWorld()
+    condition(doesTowerFall(world) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    return world
+  }))
+}
+var makeStableTowerWorld = function () {
+  return sample(Infer({method: 'MCMC', samples: 100}, function() {
+    var world = makeTowerWorld()
+    condition(doesTowerFall(world) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    condition(doesTowerFall(noisify(world)) === false)
+    return world
+  }))
+}
+var makeUnstableTowerWorld = function () {
+  return sample(Infer({method: 'MCMC', samples: 100}, function() {
+    var world = makeTowerWorld()
+    condition(doesTowerFall(world) === true)
+    condition(doesTowerFall(noisify(world)) === true)
+    condition(doesTowerFall(noisify(world)) === true)
+    condition(doesTowerFall(noisify(world)) === true)
+    return world
+  }))
+}
+
+var canvas2 = Draw(worldWidth * 3, worldHeight, true)
+visualizeWorldPerception(canvas2, [0,0], makeStableTowerWorld(), true)
+visualizeWorldPerception(canvas2, [worldWidth,0], sampleSSTower.real, true) // we already have a surprisingly stable tower sampled
+visualizeWorldPerception(canvas2, [worldWidth*2,0], makeUnstableTowerWorld(), true)
+
+// then to export image, right click > "save image as"
