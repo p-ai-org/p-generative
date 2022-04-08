@@ -19,9 +19,9 @@ randomInteger(max) e.g. randomInteger(10) (random integer from 0 to 9)
 For more WebPPL documentation, see https://webppl.readthedocs.io/en/master/
 */
 
-// ** IF YOU WANT TO UPLOAD AN IMAGE, UPLOAD IT TO THE /assets FOLDER; you can drag and drop at  (I put beach.png there as an example
-// --see how small it is! smaller images will be easier for us to process; you can shrink any image you want,
-// or edit any image you want, using https://www.photopea.com/) **
+// ** IF YOU WANT TO UPLOAD AN IMAGE, UPLOAD IT TO THE /assets FOLDER; you can drag and drop it at https://github.com/p-ai-org/p-generative/tree/main/assets
+// (I put beach.png there as an example -- see how small it is! smaller images will be easier for us to process;
+// you can shrink any image you want, or edit any image you want, using https://www.photopea.com/) **
 
 var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
     if (shapes.length == 0) { return []; }
