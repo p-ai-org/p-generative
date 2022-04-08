@@ -8,14 +8,14 @@
 
     <title>P-generative WebPPL Runner</title>
 
-    <link rel="stylesheet" href="http://webppl.org/webppl-editor.css">
-    <link rel="stylesheet" href="http://webppl.org/webppl-viz.css">
+    <link rel="stylesheet" href="https://probmods.github.io/webppl-editor/webppl-editor.css">
+    <link rel="stylesheet" href="https://probmods.github.io/webppl-viz/webppl-viz.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.6.0/katex.min.css">
 
-    <script src="http://cdn.webppl.org/webppl-v0.9.15.js"></script>
+    <script src="./lib/webppl-v0.9.15.js"></script>
     <script src="https://probmods.github.io/webppl-editor/jquery.js"></script>
-    <script src="http://probmods.org/assets/js/webppl-editor.min.js"></script>
-    <script src="http://probmods.org/assets/js/webppl-viz.min.js"></script>
+    <script src="https://probmods.org/assets/js/webppl-editor.min.js"></script>
+    <script src="https://probmods.org/assets/js/webppl-viz.min.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -26,6 +26,13 @@
 </head>
 
 <body>
+    <header>
+        <h1>P-generative WebPPL Runner</h>
+        <p>Please insert code into the box below and click run.</p>
+        <b style="color: red">Warning - <u>there is no saving functionality!</u>
+        Please copy your code to clipboard frequently and paste it back in the original file to save any changes</b>
+    </header>
+
     <pre></pre>
 
     <script src="https://probmods.org/assets/js/paper-full.js"></script>
