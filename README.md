@@ -1,2 +1,8 @@
 # p-generative
 Exploring Generative Models of Cognition as Generative Art (Spring 2022)
+
+To edit WebPPL code, you can clone it locally from VS Code if you already have git set up (see [this section of a guide](https://code.visualstudio.com/docs/editor/versioncontrol#_cloning-a-repository)). *Alternatively, you can go to https://github.dev/p-ai-org/p-generative . It will prompt you to log into GitHub if you aren't already, and then you can edit code in the browser, and it allows you to use git just the same to pull code, commit changes, and push changes.* In either version of VS Code, you can install Live Share and collaborate in real-time as though your code is a Google doc. Whether or not you use Live Share, you need to save your code to the repository using git ("committing changes" to the repository), or your changes will remain only on your computer. *For instructions for operating git in VS Code, see [this section of a guide](https://docs.github.com/en/codespaces/the-githubdev-web-based-editor#using-source-control).*
+
+To run WebPPL code, go to https://p-ai-org.github.io/p-generative/ and follow the instructions there, pasting whatever code you want into the code box. Notice the warning: **There is no saving functionality! Please copy your code to clipboard frequently and paste it back in the original file to save any changes.**
+
+To upload assets, please click on the **assets** folder and drag and drop whatever files you want. Take note of the filename, as that is what you will use to reference the asset (e.g. an image that you want to load using `loadImage`).
