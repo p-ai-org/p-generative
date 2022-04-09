@@ -1,12 +1,14 @@
 /*
 // Helper functions available (provided by the dependencies we include above):
 
-var canvas1 = Draw(50, 50, false) // semicolon at end of line is optional
-loadImage(canvas1, "/assets/beach.png")
+var canvas1 = Draw(50, 50, true) // semicolon at end of line is optional
+// parameters are width, height, whether to display the canvas in the output
+loadImage(canvas1, "assets/beach.png")
 
-var canvas2 = Draw(50, 50, false)
-loadImage(canvas2, "/assets/beach2.png")
+var canvas2 = Draw(50, 50, true)
+loadImage(canvas2, "assets/beach2.png")
 
+// distance compares two images
 //images must be the same size
 canvas1.distance(canvas2)
 
@@ -36,22 +38,55 @@ var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
     }
     drawShapes(canvas, shapes.slice(1), stroke, fill, opacity);
 }
-/* example of how to call this function:
+
+
+/* demoing some of our functions */
+
+var canvas1 = Draw(100, 100, true)
+loadImage(canvas1, "assets/beach.png")
 drawShapes(canvas1, [
     {
         shape: 'rect',
-        dims: [10, 10],
-        x: 10,
-        y: 0
+        dims: [20, 20],
+        x: 90, // distance from left edge
+        y: 60, // distance from top edge
+        angle: 35 // angle is in degrees
     },
     {
         shape: 'rect',
         dims: [20, 10],
-        x: 20,
-        y: 15
+        x: 30,
+        y: 55,
+        angle: 0
     }
-], "blue", "red", 1.0)
-*/
+], "white", "cyan", 1.0)
+
+var canvas2 = Draw(100, 100, false)
+loadImage(canvas2, "assets/beach.png")
+
+display('Distance to original: ' + canvas2.distance(canvas1))
+
+
+// a generative modeling demo
+
+var model = function() {
+  // generate data
+  var die1 = randomInteger(6) + 1; // random integer from 1 to 6
+  var die2 = randomInteger(6) + 1;
+  
+  // constrain the data
+  condition(die1 + die2 == 8)
+
+  // for the sake of this model, we only care about one of our variables (the value of one of our dice)
+  return die1;
+}
+// infer generated values that match the constraint 
+var roll = Infer({ model: model });
+// visualize: inference recognizes that for the dice to sum to 8, the first die must have rolled a 2,3,4,5 or 6
+viz(roll);
+
+
+
 
 
 // 1. define the problem

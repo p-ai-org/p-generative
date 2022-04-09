@@ -38,8 +38,9 @@
     <script src="https://probmods.org/assets/js/paper-full.js"></script>
     <script src="https://probmods.org/assets/js/draw.js"></script>
     <script src="https://probmods.org/assets/js/box2d.js"></script>
-    <!-- <script src="https://probmods.org/assets/js/physics.js"></script> -->
+    <script src="https://probmods.org/assets/js/physics.js"></script>
     <script>
+        // from some prodmods js asset (physics.js I think), modified to accommodate drawing rotated rectangles and also drawing worlds run through the physics engine 
         applyWorld = function (initialWorld) {
             var worldList = initialWorld;
             _.each(
@@ -106,6 +107,16 @@
             rect.opacity = opacity || 1;
             rect.rotate(angle || 0.0, (x1 + x2) / 2, (y1 + y2) / 2);
             this.redraw();
+        };
+
+        // from dippl.org/examples/vision.html, used by the DrawObject.prototype.distance function
+        function euclideanDistance(v1, v2){
+            var i;
+            var d = 0;
+            for (i = 0; i < v1.length; i++) {
+                d += (v1[i] - v2[i])*(v1[i] - v2[i]);
+            }
+            return Math.sqrt(d);
         };
     </script>
 
