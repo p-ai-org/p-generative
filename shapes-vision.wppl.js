@@ -57,9 +57,11 @@ var drawRandRect = function(canvas){
 }
 
 loadImage(canvas1, "assets/beach.png")
-repeat(100, drawRandRect)
+//repeat(100, drawRandRect)
 
 
+
+Infer({ method: 'MCMC', samples: 200, model: drawRandRect })
 /*drawShapes(canvas1, [
     {
         shape: 'rect',
