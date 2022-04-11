@@ -39,12 +39,28 @@ var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
     drawShapes(canvas, shapes.slice(1), stroke, fill, opacity);
 }
 
-
 /* demoing some of our functions */
 
 var canvas1 = Draw(100, 100, true)
+
+//draws a random square
+var drawRandRect = function(canvas){
+    drawShapes(canvas1, [
+        {
+            shape: 'rect',
+            dims: [randomInteger(30), randomInteger(30)],
+            x: randomInteger(100), // distance from left edge
+            y: randomInteger(100), // distance from top edge
+            angle: randomInteger(90) // angle is in degrees
+        }
+    ], "white", "cyan", 0.5)
+}
+
 loadImage(canvas1, "assets/beach.png")
-drawShapes(canvas1, [
+repeat(100, drawRandRect)
+
+
+/*drawShapes(canvas1, [
     {
         shape: 'rect',
         dims: [20, 20],
@@ -59,7 +75,7 @@ drawShapes(canvas1, [
         y: 55,
         angle: 0
     }
-], "white", "cyan", 1.0)
+], "white", "cyan", 1.0)*/
 
 var canvas2 = Draw(100, 100, false)
 loadImage(canvas2, "assets/beach.png")
