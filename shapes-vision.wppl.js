@@ -50,6 +50,7 @@ var drawRandRect = function(canvas){
             angle: randomInteger(90) // angle is in degrees
         }
     ], "white", "cyan", 0.5)
+}
 
 
 var targetimage = Draw(100, 100, true)
