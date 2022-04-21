@@ -39,29 +39,38 @@ var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
     drawShapes(canvas, shapes.slice(1), stroke, fill, opacity);
 }
 
-/* demoing some of our functions */
 
-var canvas1 = Draw(100, 100, true)
+var targetimage = Draw(100, 100, true)
+loadImage(targetimage, "assets/beach.png")
 
-//draws a random square
-var drawRandRect = function(canvas){
-    drawShapes(canvas1, [
-        {
-            shape: 'rect',
-            dims: [randomInteger(30), randomInteger(30)],
-            x: randomInteger(100), // distance from left edge
-            y: randomInteger(100), // distance from top edge
-            angle: randomInteger(90) // angle is in degrees
-        }
-    ], "white", "cyan", 0.5)
+
+var maxScore = 0.31
+var minScore = 0.05
+var mainLoop = function() {
+  var canvas1 = Draw(100, 100, false)
+  Infer({
+    method: 'forward',
+    samples: 20,
+    model: function() {
+      drawRandRect(canvas1)
+    }
+  })
+  var score = 1 - (canvas1.distance(targetimage) / 5000000)
+  var boundedScore = Math.max(Math.min(score, maxScore), minScore)
+//   display(score + " " + boundedScore)
+  factor(-1/score)
+  
+  return canvas1
 }
 
-loadImage(canvas1, "assets/beach.png")
-//repeat(100, drawRandRect)
+var bestcanvas = Infer({ method: 'SMC', model: mainLoop })
 
 
 
-Infer({ method: 'MCMC', samples: 200, model: drawRandRect })
+
+
+/* demoing some of our functions */
+
 /*drawShapes(canvas1, [
     {
         shape: 'rect',
@@ -79,61 +88,37 @@ Infer({ method: 'MCMC', samples: 200, model: drawRandRect })
     }
 ], "white", "cyan", 1.0)*/
 
+/*
 var canvas2 = Draw(100, 100, false)
 loadImage(canvas2, "assets/beach.png")
 
 display('Distance to original: ' + canvas2.distance(canvas1))
+*/
 
 
+/*
 // a generative modeling demo
-
 var model = function() {
-  // generate data
-  var die1 = randomInteger(6) + 1; // random integer from 1 to 6
-  var die2 = randomInteger(6) + 1;
-  
-  // constrain the data
-  condition(die1 + die2 == 8)
+    // generate data
+    var die1 = randomInteger(6) + 1; // random integer from 1 to 6
+    var die2 = randomInteger(6) + 1;
 
-  // for the sake of this model, we only care about one of our variables (the value of one of our dice)
-  return die1;
+    // constrain the data
+    //   condition(die1 + die2 == 8)
+
+    //   factor(-Infinity) // => 10^-inf = 0
+    //   factor(0) // => 0 => 10^0 = 1
+
+    //   factor(-100.0/(die1 + die2))
+    factor(Math.pow(.94, -(die1 + die2)))
+
+    // for the sake of this model, we only care about one of our variables (the value of one of our dice)
+    return die1;
 }
 // infer generated values that match the constraint 
 var roll = Infer({ model: model });
 // visualize: inference recognizes that for the dice to sum to 8, the first die must have rolled a 2,3,4,5 or 6
 viz(roll);
+*/
 
-
-
-
-
-// 1. define the problem
-
-// what shape? what position? what color?
-// can shapes overlap? should shapes be opaque (base off how we see the world)?
-
-// approaches:
-// start with shapes, put them in the right place, then color them
-// find the right positions, find the right shapes, then color them
-// find the right colors, find the positions of the color groupings, then find the right shapes
-
-// how to find colors:
-// from image ("bottom-up"):
-// average color in region (average for each channel (RGB))
-// could also pick the color in the middle/or edge of the region
-// from expectation ("top-down"):
-// have set of colors and choose closest match
-// combination? = extract color from image, then match it to a color we know
-
-// how to find position/shape:
-// random position, random shape
-// but can nudge the model (like give it a hint for shape): take central point in region, branch out in different directions to find edges
-
-// how to find shape:
-// group by similar colors
-// pick a pixel, go all four directions, find sharp change in color (contrast) to find edges, then approximate the edges into shapes (same as above, but mapping outlines to edges first)
-
-
-
-// 2. develop model based on the problem definition
-// 3. visualize the model
+// notes moved to notion fifth and sixth meeting notes
