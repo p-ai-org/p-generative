@@ -39,6 +39,18 @@ var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
     drawShapes(canvas, shapes.slice(1), stroke, fill, opacity);
 }
 
+// draws a random square
+var drawRandRect = function(canvas){
+    drawShapes(canvas1, [
+        {
+            shape: 'rect',
+            dims: [randomInteger(30), randomInteger(30)],
+            x: randomInteger(100), // distance from left edge
+            y: randomInteger(100), // distance from top edge
+            angle: randomInteger(90) // angle is in degrees
+        }
+    ], "white", "cyan", 0.5)
+
 
 var targetimage = Draw(100, 100, true)
 loadImage(targetimage, "assets/beach.png")
@@ -63,7 +75,7 @@ var mainLoop = function() {
   return canvas1
 }
 
-var bestcanvas = Infer({ method: 'SMC', model: mainLoop })
+var bestcanvas = Infer({ method: 'MCMC', samples: 10, model: mainLoop })
 
 
 
