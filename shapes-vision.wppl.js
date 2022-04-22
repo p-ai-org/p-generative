@@ -100,6 +100,11 @@ var makeRandShapes = function(n, shapes) {
 var targetimage = Draw(100, 100, true)
 loadImage(targetimage, "assets/beach.png")
 
+// Starting point for edge detection: find raw edges in the image
+var edges = Draw(100, 100, true)
+edges.setImageData(detectEdges(targetimage, 4)) // TODO: infer the right threshold based on how much contrast is in the image overall?
+//
+
 var sampleDiversity = 1000
 var distanceNoise = 0.001
     

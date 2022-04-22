@@ -138,6 +138,58 @@
             }
             return Math.sqrt(d);
         };
+
+        // formula from https://stackoverflow.com/a/596243
+        function getLuminosity([r,g,b,a]) {
+            // ignore alpha; should always be 100% for images, which is what we're detecting edges in
+            return (0.299*r + 0.587*g + 0.114*b);
+        }
+
+        // adapted from https://codepen.io/taylorcoffelt/pen/eYNZvZ
+        function detectEdges(s, k, a, drawObject, threshold=0.2) {
+            var height = drawObject.canvas.height;
+            var width = drawObject.canvas.width;
+            var imageData = drawObject.toArray();
+            function getPixel(x,y) {
+                var start = (x + y * width) * 4;
+                return imageData.slice(start, start + 4);
+            }
+
+            // debugger;
+            var points = drawObject.canvas.getContext('2d').createImageData(width, height);
+            for(y=0;y<height;y++) {
+                for(x=0;x<width;x++){
+                    pixel = getLuminosity(getPixel(x,y));
+
+                    left = getLuminosity(getPixel(x-1,y));
+                    right = getLuminosity(getPixel(x+1,y));
+                    top = getLuminosity(getPixel(x,y-1));
+                    bottom = getLuminosity(getPixel(x,y+1));
+
+                    //Compare it all.
+                    // (Currently, just the left pixel) (really? -Jacob)
+                    if(pixel>left+threshold
+                        || pixel<left-threshold
+                        || pixel>right+threshold
+                        || pixel<right-threshold
+                        || pixel>top+threshold
+                        || pixel<top-threshold
+                        || pixel>bottom+threshold
+                        || pixel<bottom-threshold) {
+                            var index = (x + y * width) * 4;
+                            points.data[index + 0] = 0;
+                            points.data[index + 1] = 0;
+                            points.data[index + 2] = 0;
+                            points.data[index + 3] = 255;
+                    }
+                }
+            }
+            return k(s, points);
+        }
+
+        DrawObject.prototype.setImageData = function(imageData) {
+            this.canvas.getContext('2d').putImageData(imageData, 0, 0);
+        }
     </script>
 
     <script>
