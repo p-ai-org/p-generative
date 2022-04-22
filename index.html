@@ -108,6 +108,26 @@
             rect.rotate(angle || 0.0, (x1 + x2) / 2, (y1 + y2) / 2);
             this.redraw();
         };
+        DrawObject.prototype.circle = function(x, y, radius, stroke, fill, opacity){
+            var point = this.newPoint(x, y);
+            var circle = new this.paper.Path.Circle(point, radius || 50);
+            circle.fillColor = fill || 'black';
+            circle.strokeColor = stroke || 'black';
+            circle.opacity = opacity || 1;
+            this.redraw();
+        };
+
+        DrawObject.prototype.triangle = function (x1, y1, x2, y2, x3, y3, stroke, fill, opacity) {
+            var tri = new this.paper.Path();
+            tri.add(this.newPoint(x1, y1));
+            tri.add(this.newPoint(x2, y2));
+            tri.add(this.newPoint(x3, y3));
+            tri.closed = true;
+            tri.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : (fill || 'white'));
+            tri.strokeColor = stroke || 'black';
+            tri.opacity = opacity || 1;
+            this.redraw();
+        };
 
         // from dippl.org/examples/vision.html, used by the DrawObject.prototype.distance function
         function euclideanDistance(v1, v2){

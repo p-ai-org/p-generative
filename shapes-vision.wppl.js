@@ -25,58 +25,99 @@ For more WebPPL documentation, see https://webppl.readthedocs.io/en/master/
 // (I put beach.png there as an example -- see how small it is! smaller images will be easier for us to process;
 // you can shrink any image you want, or edit any image you want, using https://www.photopea.com/) **
 
-var drawShapes = function(canvas, shapes, stroke, fill, opacity) {
+var drawShapes = function(canvas, shapes, outlinesOnly) {
     if (shapes.length == 0) { return []; }
     var next = shapes[0];
+    var fill = outlinesOnly ? 'white' : next.fill;
+    var stroke = outlinesOnly ? 'black' : next.stroke;
+    var opacity = outlinesOnly ? 1.0 : next.opacity;
     if (next.shape === 'rect') {
         var leftX = next.x - next.dims[0]
         var topY = next.y - next.dims[1]
-        var angle = next.angle
-        canvas.rectangle(leftX, topY, leftX + next.dims[0], topY + next.dims[1], stroke, fill, opacity, angle);
+        canvas.rectangle(leftX, topY, leftX + next.dims[0], topY + next.dims[1], stroke, fill, opacity, next.angle);
+    } else if (next.shape === 'circle') {
+      canvas.circle(next.x, next.y, next.radius, stroke, fill, opacity);
+    } else if (next.shape === 'tri') {
+      canvas.triangle(next.xs[0], next.ys[0], next.xs[1], next.ys[1], next.xs[2], next.ys[2], stroke, fill, opacity);
     } else {
         console.warn('drawing a "', next.shape, '" shape not yet implemented! drawing nothing instead');
     }
-    drawShapes(canvas, shapes.slice(1), stroke, fill, opacity);
+    drawShapes(canvas, shapes.slice(1), outlinesOnly);
 }
 
-// draws a random square
-var drawRandRect = function(canvas){
-    drawShapes(canvas1, [
+
+
+var makeRandShapes = function(n, shapes) {
+  if (n == 0) return shapes
+  
+  var shapeType = ['rect', 'circle', 'tri'][randomInteger(3)]
+  if (shapeType === 'rect') {
+    var newShapes = shapes.concat([
         {
-            shape: 'rect',
+            shape: shapeType,
             dims: [randomInteger(30), randomInteger(30)],
             x: randomInteger(100), // distance from left edge
             y: randomInteger(100), // distance from top edge
-            angle: randomInteger(90) // angle is in degrees
+            angle: randomInteger(90), // angle is in degrees
+            fill: "cyan",
+            stroke: "white",
+            opacity: 1.0
         }
-    ], "white", "cyan", 0.5)
+    ])
+    return makeRandShapes(n - 1, newShapes)
+  }
+  
+  if (shapeType === 'circle') {
+    var newShapes = shapes.concat([
+        {
+            shape: shapeType,
+            radius: randomInteger(25),
+            x: randomInteger(100), // distance from left edge
+            y: randomInteger(100), // distance from top edge
+            fill: "cyan",
+            stroke: "white",
+            opacity: 1.0
+        }
+    ])
+    return makeRandShapes(n - 1, newShapes)
+  }
+  
+  if (shapeType === 'tri') {
+    var newShapes = shapes.concat([
+        {
+            shape: shapeType,
+            xs: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from left edge
+            ys: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from top edge
+            fill: "cyan",
+            stroke: "white",
+            opacity: 1.0
+        }
+    ])
+    return makeRandShapes(n - 1, newShapes)
+  }
 }
-
 
 var targetimage = Draw(100, 100, true)
 loadImage(targetimage, "assets/beach.png")
 
-
-var maxScore = 0.31
-var minScore = 0.05
-var mainLoop = function() {
-  var canvas1 = Draw(100, 100, false)
-  Infer({
-    method: 'forward',
-    samples: 20,
-    model: function() {
-      drawRandRect(canvas1)
-    }
-  })
-  var score = 1 - (canvas1.distance(targetimage) / 5000000)
-  var boundedScore = Math.max(Math.min(score, maxScore), minScore)
-//   display(score + " " + boundedScore)
-  factor(-1/score)
+var sampleDiversity = 1000
+var distanceNoise = 0.001
+    
+// this inference loop should be run twice as two different versions: one for finding outlines, and one for finding colors
+var findShapes = function() {
+  var shapes = makeRandShapes(10, [])
+  var canvas1 = Draw(100, 100, true)
+  
+  var outlinesOnly = false
+  drawShapes(canvas1, shapes, outlinesOnly)
+  var score = -(canvas1.distance(targetimage) + gaussian(0, distanceNoise))
+//   display(score)
+  factor(score/sampleDiversity)
   
   return canvas1
 }
 
-var bestcanvas = Infer({ method: 'MCMC', samples: 10, model: mainLoop })
+var bestcanvas = Infer({ method: 'MCMC', samples: 100, model: findShapes })
 
 
 
