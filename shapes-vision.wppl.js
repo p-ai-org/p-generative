@@ -53,25 +53,15 @@ var rbgFix = function(value) {
 var makeColors = function(n, colors) {
   if (n == 0) return colors
   
- // var redVal = [255, 200, 235, 120, 0][randomInteger(5)]
- // var greenVal = [0, 100, 235, 120, 50][randomInteger(5)]
- // var blueVal = [0, 10, 235, 190, 255][randomInteger(5)]
- // var redPlus = randomInteger(1)
- // var greenPlus = randomInteger(1)
- // var bluePlus = randomInteger(1)
+  var redVal = [255, 200, 235, 120, 0][randomInteger(5)] 
+  var greenVal = [0, 100, 235, 120, 50][randomInteger(5)]
+  var blueVal = [0, 10, 235, 190, 255][randomInteger(5)]
   
+  var colorString = "rgb("+redVal+","+greenVal+","+blueVal+")"
+  var color = colorString
+
   
-  //(redPlus == 1) ? (redVal += randomInteger(20)) : (redVal -= randomInteger(20))
- //(greenPlus == 1) ? (greenVal += randomInteger(20)) :  (greenVal -= randomInteger(20))
-  //(bluePlus == 1) ? (blueVal += randomInteger(20)) : (blueVal -= randomInteger(20))
-  
-  //var newColors = colors.concat([{
- //     red: rbgFix(redVal),
-   //   green: rbgFix(greenVal),
-    //  blue: rbgFix(blueVal)
-    //}])
-  
-  var color = ["red", "blue", "cyan", "green", "yellow", "white", "pink", "black", "orange"][randomInteger(8)]
+  //var color = ["red", "blue", "cyan", "green", "yellow", "white", "pink", "black", "orange"][randomInteger(8)]
   return makeColors(n - 1, colors.concat([color]))
                     
 }
