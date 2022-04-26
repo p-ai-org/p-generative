@@ -25,24 +25,30 @@ For more WebPPL documentation, see https://webppl.readthedocs.io/en/master/
 // (I put beach.png there as an example -- see how small it is! smaller images will be easier for us to process;
 // you can shrink any image you want, or edit any image you want, using https://www.photopea.com/) **
 
-var drawShapes = function(canvas, shapes, outlinesOnly) {
-    if (shapes.length == 0) { return []; }
-    var next = shapes[0];
-    var fill = outlinesOnly ? 'white' : next.fill;
-    var stroke = outlinesOnly ? 'black' : next.stroke;
-    var opacity = outlinesOnly ? 1.0 : next.opacity;
-    if (next.shape === 'rect') {
-        var leftX = next.x - next.dims[0]
-        var topY = next.y - next.dims[1]
-        canvas.rectangle(leftX, topY, leftX + next.dims[0], topY + next.dims[1], stroke, fill, opacity, next.angle);
-    } else if (next.shape === 'circle') {
-      canvas.circle(next.x, next.y, next.radius, stroke, fill, opacity);
-    } else if (next.shape === 'tri') {
-      canvas.triangle(next.xs[0], next.ys[0], next.xs[1], next.ys[1], next.xs[2], next.ys[2], stroke, fill, opacity);
-    } else {
-        console.warn('drawing a "', next.shape, '" shape not yet implemented! drawing nothing instead');
-    }
-    drawShapes(canvas, shapes.slice(1), outlinesOnly);
+var drawShapes = function(canvas, shapeAndColorData) {
+  var shapes = shapeAndColorData[0];
+  var colorings = shapeAndColorData[1];
+  
+  if (shapes.length == 0) { return; }
+
+  var next = shapes[0];
+  var coloring = colorings[0];
+
+  var fill = coloring ? coloring.fill : 'rgba(0,0,0,0)';
+  var stroke = coloring ? coloring.stroke : 'black';
+  var opacity = coloring ? coloring.opacity : 1.0;
+  if (next.shape === 'rect') {
+      var leftX = next.x - next.dims[0]
+      var topY = next.y - next.dims[1]
+      canvas.rectangle(leftX, topY, leftX + next.dims[0], topY + next.dims[1], stroke, fill, opacity, next.angle);
+  } else if (next.shape === 'circle') {
+    canvas.circle(next.x, next.y, next.radius, stroke, fill, opacity);
+  } else if (next.shape === 'tri') {
+    canvas.triangle(next.xs[0], next.ys[0], next.xs[1], next.ys[1], next.xs[2], next.ys[2], stroke, fill, opacity);
+  } else {
+    console.warn('drawing a "', next.shape, '" shape not yet implemented! drawing nothing instead');
+  }
+  drawShapes(canvas, [shapes.slice(1), colorings.slice(1)]);
 }
 
 var rbgFix = function(value) {
@@ -62,17 +68,17 @@ var makeColors = function(n, colors) {
 
   
   //var color = ["red", "blue", "cyan", "green", "yellow", "white", "pink", "black", "orange"][randomInteger(8)]
-  return makeColors(n - 1, colors.concat([color]))
+  return makeColors(n - 1, colors.concat([{
+    fill: color,
+    stroke: color,
+    opacity: 1.0
+  }]))
                     
 }
 
-
-
-var makeRandShapes = function(n, shapes, colors) {
+var makeRandShapes = function(n, shapes) {
   if (n == 0) return shapes
   
-  var color = colors[randomInteger(10)]
-  //var color = "rgb(colorRGB.red(), colorRGB.green(), colorRGB.blue())"
   var shapeType = ['rect', 'circle', 'tri'][randomInteger(3)]
   if (shapeType === 'rect') {
     var newShapes = shapes.concat([
@@ -81,13 +87,10 @@ var makeRandShapes = function(n, shapes, colors) {
             dims: [randomInteger(30), randomInteger(30)],
             x: randomInteger(100), // distance from left edge
             y: randomInteger(100), // distance from top edge
-            angle: randomInteger(90), // angle is in degrees
-            fill: color,
-            stroke: "white",
-            opacity: 1.0
+            angle: randomInteger(90) // angle is in degrees
         }
     ])
-    return makeRandShapes(n - 1, newShapes, colors)
+    return makeRandShapes(n - 1, newShapes)
   }
   
   if (shapeType === 'circle') {
@@ -96,13 +99,10 @@ var makeRandShapes = function(n, shapes, colors) {
             shape: shapeType,
             radius: randomInteger(25),
             x: randomInteger(100), // distance from left edge
-            y: randomInteger(100), // distance from top edge
-            fill: color,
-            stroke: "white",
-            opacity: 1.0
+            y: randomInteger(100) // distance from top edge
         }
     ])
-    return makeRandShapes(n - 1, newShapes, colors)
+    return makeRandShapes(n - 1, newShapes)
   }
   
   if (shapeType === 'tri') {
@@ -110,44 +110,115 @@ var makeRandShapes = function(n, shapes, colors) {
         {
             shape: shapeType,
             xs: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from left edge
-            ys: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from top edge
-            fill: color,
-            stroke: "white",
-            opacity: 1.0
+            ys: [randomInteger(100), randomInteger(100), randomInteger(100)] // distance from top edge
         }
     ])
-    return makeRandShapes(n - 1, newShapes, colors)
+    return makeRandShapes(n - 1, newShapes)
   }
 }
-
-var targetimage = Draw(100, 100, true)
-loadImage(targetimage, "assets/beach.png")
-
-// Starting point for edge detection: find raw edges in the image
-var edges = Draw(100, 100, true)
-edges.setImageData(detectEdges(targetimage, 4)) // TODO: infer the right threshold based on how much contrast is in the image overall?
-//
-
-var sampleDiversity = 1000
-var distanceNoise = 0.001
     
-// this inference loop should be run twice as two different versions: one for finding outlines, and one for finding colors
-var findShapes = function() {
-  var colors = makeColors(10, [])
-  var shapes = makeRandShapes(10, [], colors)
-  var canvas1 = Draw(100, 100, true)
+// our inference loop is run twice as two different versions: once for finding outlines (findOutlines), and one for finding colors (findShapeColors)
+// we are doing these two inference steps independently rather than jointly to model how the brain has lower-level processing before higher-level processing
 
-  var outlinesOnly = false
-  drawShapes(canvas1, shapes, outlinesOnly)
-  var score = -(canvas1.distance(targetimage) + gaussian(0, distanceNoise))
-//   display(score)
-  factor(score/sampleDiversity)
-  
-  return canvas1
+
+var outliner = function(trueEdges) {
+  var sampleDiversity = 10000
+  var distanceNoise = 0.001
+
+  var counter = []
+  var showEveryN = 15
+  var findOutlines = function() {
+    var numShapes = randomInteger(11) // 10
+    var shapes = makeRandShapes(numShapes, [])
+
+    var show = counter.length % showEveryN == 0
+    var canvas1 = Draw(100, 100, show)
+    
+    // condition inference using edges data (integrating lower-level contrast information)
+    var shapeColors = repeat(numShapes, function() {return undefined}) // dummy
+    drawShapes(canvas1, [shapes, shapeColors])
+    var score = -(canvas1.distance(trueEdges)) // + gaussian(0, distanceNoise))
+  //   display(score)
+    factor(score/sampleDiversity)
+
+    counter.push(1)
+    
+    return [shapes, shapeColors]
+  }
+  return findOutlines
 }
 
-var bestcanvas = Infer({ method: 'MCMC', samples: 100, model: findShapes })
+var painter = function(targetimage, bestOutlines) {
+  var sampleDiversity = 10000
+  var distanceNoise = 0.001
 
+  var counter = []
+  var showEveryN = 15
+  var findShapeColors = function() {
+    // var shapes = makeRandShapes(numShapes, [])
+    
+    // // condition inference using outlines data (integrating outlines, based on lower-level contrast information)
+    // observe(bestOutlines, [shapes, repeat(numShapes, function() {return undefined})])
+
+    var shapes = sample(bestOutlines)[0] // TODO: is conditioning here conditioning this? (does it need to?)
+
+    var show = counter.length % showEveryN == 0
+    var canvas1 = Draw(100, 100, show)
+
+    // condition inference using target image data (integrating lower-level color information)
+    var numShapes = shapes.length
+    var shapeColors = makeColors(numShapes, [])
+    drawShapes(canvas1, [shapes, shapeColors])
+    var score = -(canvas1.distance(targetimage)) // + gaussian(0, distanceNoise))
+  //   display(score)
+    factor(score/sampleDiversity)
+
+    counter.push(1)
+    
+    return [shapes, shapeColors]
+  }
+  return findShapeColors
+}
+
+// Run:
+
+// load input image
+var targetimage = Draw(100, 100, true)
+var imagePath = "assets/beach.png"
+loadImage(targetimage, imagePath)
+
+// 1. Find outlines
+
+// place outlines onto image based on edges detected by contrast changes
+var trueEdges = Draw(100, 100, true)
+var edgePixels = detectEdges(targetimage, 2.5)
+trueEdges.setImageData(edgePixels) // TODO: infer the right threshold based on how much contrast is in the image overall?
+
+var bestOutlines = Infer({ method: 'MCMC', samples: 400, model: outliner(trueEdges) })
+
+// sample from the resulting distribution a few times to assess how specific the results are (assess variance)
+drawShapes(Draw(100, 100, true), sample(bestOutlines))
+drawShapes(Draw(100, 100, true), sample(bestOutlines))
+drawShapes(Draw(100, 100, true), sample(bestOutlines))
+
+// show the true edges again for comparison
+Draw(100, 100, true).setImageData(edgePixels)
+
+// 2. Find colors
+
+// fill in the shapes
+var bestColoredShapes = Infer({ method: 'MCMC', samples: 500, model: painter(targetimage, bestOutlines) })
+
+// sample from the resulting distribution a few times to assess how specific the results are (assess variance)
+drawShapes(Draw(100, 100, true), sample(bestColoredShapes))
+drawShapes(Draw(100, 100, true), sample(bestColoredShapes))
+drawShapes(Draw(100, 100, true), sample(bestColoredShapes))
+
+// show the target image again for comparison
+loadImage(Draw(100, 100, true), imagePath)
+
+// show the true edges again for comparison
+Draw(100, 100, true).setImageData(edgePixels)
 
 
 
