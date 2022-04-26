@@ -45,11 +45,44 @@ var drawShapes = function(canvas, shapes, outlinesOnly) {
     drawShapes(canvas, shapes.slice(1), outlinesOnly);
 }
 
+var rbgFix = function(value) {
+  if(value > 255) return 255
+  if (value < 0) return 0
+}
+
+var makeColors = function(n, colors) {
+  if (n == 0) return colors
+  
+ // var redVal = [255, 200, 235, 120, 0][randomInteger(5)]
+ // var greenVal = [0, 100, 235, 120, 50][randomInteger(5)]
+ // var blueVal = [0, 10, 235, 190, 255][randomInteger(5)]
+ // var redPlus = randomInteger(1)
+ // var greenPlus = randomInteger(1)
+ // var bluePlus = randomInteger(1)
+  
+  
+  //(redPlus == 1) ? (redVal += randomInteger(20)) : (redVal -= randomInteger(20))
+ //(greenPlus == 1) ? (greenVal += randomInteger(20)) :  (greenVal -= randomInteger(20))
+  //(bluePlus == 1) ? (blueVal += randomInteger(20)) : (blueVal -= randomInteger(20))
+  
+  //var newColors = colors.concat([{
+ //     red: rbgFix(redVal),
+   //   green: rbgFix(greenVal),
+    //  blue: rbgFix(blueVal)
+    //}])
+  
+  var color = ["red", "blue", "cyan", "green", "yellow", "white", "pink", "black", "orange"][randomInteger(8)]
+  return makeColors(n - 1, colors.concat([color]))
+                    
+}
 
 
-var makeRandShapes = function(n, shapes) {
+
+var makeRandShapes = function(n, shapes, colors) {
   if (n == 0) return shapes
   
+  var color = colors[randomInteger(10)]
+  //var color = "rgb(colorRGB.red(), colorRGB.green(), colorRGB.blue())"
   var shapeType = ['rect', 'circle', 'tri'][randomInteger(3)]
   if (shapeType === 'rect') {
     var newShapes = shapes.concat([
@@ -59,12 +92,12 @@ var makeRandShapes = function(n, shapes) {
             x: randomInteger(100), // distance from left edge
             y: randomInteger(100), // distance from top edge
             angle: randomInteger(90), // angle is in degrees
-            fill: "cyan",
+            fill: color,
             stroke: "white",
             opacity: 1.0
         }
     ])
-    return makeRandShapes(n - 1, newShapes)
+    return makeRandShapes(n - 1, newShapes, colors)
   }
   
   if (shapeType === 'circle') {
@@ -74,12 +107,12 @@ var makeRandShapes = function(n, shapes) {
             radius: randomInteger(25),
             x: randomInteger(100), // distance from left edge
             y: randomInteger(100), // distance from top edge
-            fill: "cyan",
+            fill: color,
             stroke: "white",
             opacity: 1.0
         }
     ])
-    return makeRandShapes(n - 1, newShapes)
+    return makeRandShapes(n - 1, newShapes, colors)
   }
   
   if (shapeType === 'tri') {
@@ -88,12 +121,12 @@ var makeRandShapes = function(n, shapes) {
             shape: shapeType,
             xs: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from left edge
             ys: [randomInteger(100), randomInteger(100), randomInteger(100)], // distance from top edge
-            fill: "cyan",
+            fill: color,
             stroke: "white",
             opacity: 1.0
         }
     ])
-    return makeRandShapes(n - 1, newShapes)
+    return makeRandShapes(n - 1, newShapes, colors)
   }
 }
 
@@ -110,9 +143,10 @@ var distanceNoise = 0.001
     
 // this inference loop should be run twice as two different versions: one for finding outlines, and one for finding colors
 var findShapes = function() {
-  var shapes = makeRandShapes(10, [])
+  var colors = makeColors(10, [])
+  var shapes = makeRandShapes(10, [], colors)
   var canvas1 = Draw(100, 100, true)
-  
+
   var outlinesOnly = false
   drawShapes(canvas1, shapes, outlinesOnly)
   var score = -(canvas1.distance(targetimage) + gaussian(0, distanceNoise))
