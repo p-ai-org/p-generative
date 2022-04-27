@@ -1,5 +1,10 @@
 // old comments block now in shapes-vision-notes.txt
 
+var seed = randomInteger(1000000000)
+// var seed = 464608
+util.seedRNG(seed)
+display('seed is ' + seed)
+
 var drawShapes = function(canvas, shapeAndColorData) {
   var shapes = shapeAndColorData[0];
   var colorings = shapeAndColorData[1];
