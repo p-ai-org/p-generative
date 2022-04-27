@@ -23,6 +23,19 @@
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
+
+    <style>
+        div.result div.custom {
+            display: inline-block;
+        }
+        .drawCanvas {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: .25em;
+            margin: .25em;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -40,7 +53,8 @@
     <script src="https://probmods.org/assets/js/box2d.js"></script>
     <script src="https://probmods.org/assets/js/physics.js"></script>
     <script>
-        // from some prodmods js asset (physics.js I think), modified to accommodate drawing rotated rectangles and also drawing worlds run through the physics engine 
+        // from some prodmods js asset (physics.js I think), modified to accommodate drawing rotated rectangles and also drawing worlds run through the physics engine
+        // not used by shapes-vision.wppl.js 
         applyWorld = function (initialWorld) {
             var worldList = initialWorld;
             _.each(
@@ -100,32 +114,36 @@
             }
             return worldList;
         }
-        DrawObject.prototype.rectangle = function (x1, y1, x2, y2, stroke, fill, opacity, angle) {
-            var rect = new this.paper.Path.Rectangle(this.newPoint(x1, y1), this.newPoint(x2, y2));
-            rect.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : (fill || 'white'));
-            rect.strokeColor = stroke || 'black';
-            rect.opacity = opacity || 1;
-            rect.rotate(angle || 0.0, (x1 + x2) / 2, (y1 + y2) / 2);
-            this.redraw();
-        };
-        DrawObject.prototype.circle = function(x, y, radius, stroke, fill, opacity){
-            var point = this.newPoint(x, y);
-            var circle = new this.paper.Path.Circle(point, radius || 50);
-            circle.fillColor = fill || 'black';
-            circle.strokeColor = stroke || 'black';
-            circle.opacity = opacity || 1;
-            this.redraw();
-        };
 
-        DrawObject.prototype.triangle = function (x1, y1, x2, y2, x3, y3, stroke, fill, opacity) {
+        // adapted/modified from draw.js
+        DrawObject.prototype.rectangle = function (x1, y1, x2, y2, stroke='black', fill='white', opacity=1, angle=0, strokeWidth=1) {
+            var rect = new this.paper.Path.Rectangle(this.newPoint(x1, y1), this.newPoint(x2, y2));
+            rect.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : fill);
+            rect.strokeColor = stroke;
+            rect.strokeWidth = strokeWidth;
+            rect.opacity = opacity;
+            rect.rotate(angle, (x1 + x2) / 2, (y1 + y2) / 2); // rotate about the center of the rectangle
+            this.redraw();
+        };
+        DrawObject.prototype.circle = function(x, y, radius, stroke='black', fill='black', opacity=1, strokeWidth=1){
+            var point = this.newPoint(x, y);
+            var circle = new this.paper.Path.Circle(point, radius);
+            circle.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : fill);
+            circle.strokeColor = stroke;
+            circle.strokeWidth = strokeWidth;
+            circle.opacity = opacity;
+            this.redraw();
+        };
+        DrawObject.prototype.triangle = function (x1, y1, x2, y2, x3, y3, stroke='black', fill='white', opacity=1, strokeWidth=1) {
             var tri = new this.paper.Path();
             tri.add(this.newPoint(x1, y1));
             tri.add(this.newPoint(x2, y2));
             tri.add(this.newPoint(x3, y3));
             tri.closed = true;
-            tri.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : (fill || 'white'));
-            tri.strokeColor = stroke || 'black';
-            tri.opacity = opacity || 1;
+            tri.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : fill);
+            tri.strokeColor = stroke;
+            tri.strokeWidth = strokeWidth;
+            tri.opacity = opacity;
             this.redraw();
         };
 
@@ -167,8 +185,9 @@
                     bottom = getLuminosity(getPixel(x,y+1));
 
                     //Compare it all.
-                    // (Currently, just the left pixel) (really? -Jacob)
-                    if(pixel>left+threshold
+                    var index = (x + y * width) * 4;
+                    if(/*x == 0 || x == width-1 || y == 0 || y == height-1
+                        ||*/ pixel>left+threshold
                         || pixel<left-threshold
                         || pixel>right+threshold
                         || pixel<right-threshold
@@ -176,12 +195,15 @@
                         || pixel<top-threshold
                         || pixel>bottom+threshold
                         || pixel<bottom-threshold) {
-                            var index = (x + y * width) * 4;
-                            points.data[index + 0] = 0;
-                            points.data[index + 1] = 0;
-                            points.data[index + 2] = 0;
-                            points.data[index + 3] = 255;
+                        value = 0;
+                    } else {
+                        value = 255;
                     }
+                    points.data[index + 0] = value;
+                    points.data[index + 1] = value;
+                    points.data[index + 2] = value;
+                    points.data[index + 3] = value;
+                    points.data[index + 3] = 255;
                 }
             }
             return k(s, points);
