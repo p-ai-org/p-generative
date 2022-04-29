@@ -71,22 +71,32 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
   var shapeType = categorical({ ps: [rectP, circleP, triP], vs: ['rect', 'circle', 'tri'] })
 
   // x is distance from left edge, y is distance from top edge
-  var trueX = gaussian({ mu: imgWidth/2, sigma: imgWidth/5 }) // randomInteger(imgWidth+5*2)-5
-  var trueY = gaussian({ mu: imgHeight/2, sigma: imgHeight/5 }) // randomInteger(imgHeight+5*2)-5
-  var dim1 = randomInteger(imgWidth-10*2)+10
-  var dim2 = shapeType === 'circle' ? dim1 : randomInteger(imgHeight-10*2)+10
+  var xTrue = gaussian({ mu: imgWidth/2, sigma: imgWidth/5 }) // randomInteger(imgWidth+5*2)-5
+  var yTrue = gaussian({ mu: imgHeight/2, sigma: imgHeight/5 }) // randomInteger(imgHeight+5*2)-5
   
-  var dim1b = shapeType === 'tri' ? ((flip() ? -1 : 1) * randomInteger(imgWidth-10*2)+10) : 0
-  var dim2b = shapeType === 'tri' ? ((flip() ? -1 : 1) * randomInteger(imgHeight-10*2)+10) : 0
+  var dim1True = uniform(imgWidth / 6, imgWidth / 1.5)
+  var dim2True = shapeType === 'circle' ? dim1True : uniform(imgHeight / 6, imgHeight / 1.5)
+
+  var dim1bTrue = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(imgWidth / 6, imgWidth / 1.5)) : 0
+  var dim2bTrue = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(imgHeight / 6, imgHeight / 1.5)) : 0
   
   // while we can get all we need from just between 0 and 90,
   // allowing for values between 0 and 360 gives the model a bit more flexibility to be able to rotate by changing just one parameter
-  var angle = shapeType === 'rect' ? randomInteger(360) : 0
+  var angleTrue = shapeType === 'rect' ? randomInteger(360) : 0
   
   var createShape = mem(function(type, n) {
     return Infer({ method: 'forward', samples: 30, model() {
-      var x = trueX + uniform(-dim1/3, dim1/3)
-      var y = trueY + uniform(-dim2/3, dim2/3)
+      var x = xTrue + uniform(-dim1True/3, dim1True/3)
+      var y = yTrue + uniform(-dim2True/3, dim2True/3)
+      
+      var dim1 = dim1True + uniform(-dim1True/4, dim1True/4)
+      var dim2 = dim2True + uniform(-dim2True/4, dim2True/4)
+      
+      var dim1b = shapeType === 'tri' ? dim1bTrue + uniform(-dim1True/2, dim1True/2) : 0
+      var dim2b = shapeType === 'tri' ? dim2bTrue + uniform(-dim2True/2, dim2True/2) : 0
+
+      var angle = shapeType === 'rect' ? angleTrue + uniform(-20, 20) : 0
+      
       return (
         type === 'rect' ?
         { shape: type, dims: [dim1, dim2], x, y, angle }
@@ -113,7 +123,6 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
     var shapeColors = repeat(newShapes.length, function() {return undefined}) // dummy
     drawShapes(generatedImage, { shapes: newShapes, shapeColors })
 
-    // here could implement rotating the shapes to see if they are better at different orientations... out of scope for us
     var newScore = -targetImage.distance(generatedImage)/sampleDiversity;
     if (!show) generatedImage.destroy()
     if (newScore == prevScore) {
@@ -132,7 +141,7 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
 
 
 var outliner = function(trueEdges) {
-  var sampleDiversity = 1000
+  var sampleDiversity = 5000
   // var distanceNoise = 0.001
 
   //   var counter = []
@@ -206,7 +215,7 @@ var painter = function(targetimage, outlinesDist) {
 var imgWidth = 50
 var imgHeight = 50
 var targetimage = Draw(imgWidth, imgHeight, true)
-var imagePath = 'assets/flowers.png'
+var imagePath = 'assets/watermelon.png'
 loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
 
 // 1. Find outlines
@@ -218,7 +227,7 @@ var edgePixels = detectEdges(targetimage, edgeThreshold)
 trueEdges.setImageData(edgePixels)
 
 // var outlines = Infer({ method: 'MCMC', samples: 800, model: outliner(trueEdges), onlyMAP: false })
-var outlines = Infer({ method: 'SMC', particles: 100, rejuvSteps: 5, model: outliner(trueEdges), onlyMAP: false })
+var outlines = Infer({ method: 'SMC', particles: 30, rejuvSteps: 6, model: outliner(trueEdges), onlyMAP: false })
 
 // draw best outlines
 var chooseABest = function(dist) {
@@ -236,9 +245,12 @@ var bestOutlines = chooseABest(outlines)
 drawShapes(Draw(imgWidth, imgHeight, true), bestOutlines)
 // display(JSON.stringify(bestOutlines))
 
-display('shape type:')
-viz(marginalize(outlines, 'shapeType'))
-display('')
+// display('shape type:')
+// // display(JSON.stringify(marginalize(outlines, 'shapeType')))
+// viz(marginalize(outlines, 'shapeType'))
+// display('')
+
+display('outline results:')
 
 // sample from the resulting distribution a few times to assess how specific the results are (assess variance)
 drawShapes(Draw(imgWidth, imgHeight, true), sample(outlines))
