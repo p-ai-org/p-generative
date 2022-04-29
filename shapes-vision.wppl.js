@@ -1,13 +1,13 @@
 // old comments block now in shapes-vision-notes.txt
 
 var seed = randomInteger(1000000000)
-// var seed = 464608
+// var seed = 797436640
 util.seedRNG(seed)
 display('seed is ' + seed)
 
 var drawShapes = function(canvas, shapeAndColorData) {
-  var shapes = shapeAndColorData[0];
-  var colorings = shapeAndColorData[1];
+  var shapes = shapeAndColorData.shapes;
+  var colorings = shapeAndColorData.shapeColors;
   
   if (shapes.length == 0) { return; }
 
@@ -18,7 +18,7 @@ var drawShapes = function(canvas, shapeAndColorData) {
   var stroke = coloring ? 'rgba(1,1,1,0)' : 'black';
   var opacity = coloring ? coloring.opacity : 1.0;
 
-  var outlineThickness = 2;
+  var outlineThickness = .5;
   if (next.shape === 'rect') {
     var leftX = next.x - next.dims[0]
     var topY = next.y - next.dims[1]
@@ -30,7 +30,7 @@ var drawShapes = function(canvas, shapeAndColorData) {
   } else {
     console.warn('drawing a "', next.shape, '" shape not yet implemented! drawing nothing instead');
   }
-  drawShapes(canvas, [shapes.slice(1), colorings.slice(1)]);
+  drawShapes(canvas, { shapes: shapes.slice(1), shapeColors: colorings.slice(1) });
 }
 
 var rgbFix = function(value) {
@@ -59,39 +59,46 @@ var makeColors = function(n, colors) {
     fill: color,
     stroke: color,
     opacity: 1.0
-  }]))
-                    
+  }]))                   
 }
 
-var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity) {
-  if (n == 0) return shapes
-  
+var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity) {  
   var rectP = uniform(0, 1)
   var circleP = uniform(0, 1-rectP)
   var triP = uniform(0, 1-rectP-circleP)
   var shapeType = categorical({ ps: [rectP, circleP, triP], vs: ['rect', 'circle', 'tri'] })
+  
+  var x = randomInteger(imgWidth+5*2)-5
+  var y = randomInteger(imgHeight+5*2)-5
+  var dim1 = randomInteger(imgWidth-10*2)+10
+  var dim2 = shapeType === 'circle' ? dim1 : randomInteger(imgHeight-10*2)+10
+  
+  // while we can get all we need from just between 0 and 90,
+  // allowing for values between 0 and 360 gives the model a bit more flexibility to be able to rotate by changing just one parameter
+  var angle = shapeType === 'rect' ? randomInteger(360) : 0
+
   var newShape =
     shapeType === 'rect' ?
     {
       shape: shapeType,
-      dims: [randomInteger(30)+10, randomInteger(30)+10],
-      x: randomInteger(120)-10, // distance from left edge
-      y: randomInteger(120)-10, // distance from top edge
-      angle: randomInteger(360) // angle is in degrees; while we can get all we need from just between 0 and 90,
-      // allowing for values between 0 and 360 gives the model a bit more flexibility to be able to rotate by changing just one parameter
+      dims: [dim1, dim2],
+      x, // distance from left edge
+      y, // distance from top edge
+      angle // angle is in degrees
     }
     : shapeType === 'circle' ?
     {
       shape: shapeType,
-      radius: randomInteger(15)+5,
-      x: randomInteger(120)-10, // distance from left edge
-      y: randomInteger(120)-10 // distance from top edge
+      radius: dim1/2,
+      x, // distance from left edge
+      y // distance from top edge
     }
     : shapeType === 'tri' ?
     {
         shape: shapeType,
-        xs: [randomInteger(120)-10, randomInteger(120)-10, randomInteger(120)-10], // distance from left edge
-        ys: [randomInteger(120)-10, randomInteger(120)-10, randomInteger(120)-10] // distance from top edge
+        xs: [x - dim1/2, x + dim1/2, randomInteger(imgWidth+5*2)-5], // each vertex's distance from left edge
+        ys: [y - dim2/2, y + dim2/2, randomInteger(imgHeight+5*2)-5] // each vertex's distance from top edge
+      // the third component gives the triangle three degrees of variability for each axis
     }
     : null
   var newShapes = shapes.concat([newShape])
@@ -101,8 +108,9 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
     var generatedImage = Draw(imgWidth, imgHeight, show)
     generatedImage.rectangle(0,0,imgWidth,imgHeight,'white','white')
     var shapeColors = repeat(newShapes.length, function() {return undefined}) // dummy
-    drawShapes(generatedImage, [newShapes, shapeColors])
+    drawShapes(generatedImage, { shapes: newShapes, shapeColors })
 
+    // here could implement rotating the shapes to see if they are better at different orientations... out of scope for us
     var newScore = -targetImage.distance(generatedImage)/sampleDiversity;
     if (!show) generatedImage.destroy()
     if (newScore == prevScore) {
@@ -110,10 +118,10 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
     } else {
       factor(newScore - prevScore)
     }
-    return makeRandShapes(n - 1, newShapes, targetImage, newScore, sampleDiversity)
+    return (n==1) ? {shapes: newShapes, shapeType} : makeRandShapes(n - 1, newShapes, targetImage, newScore, sampleDiversity)
   }
 
-  return makeRandShapes(n - 1, newShapes)  
+  return (n==1) ? {shapes: newShapes, shapeType} : makeRandShapes(n - 1, newShapes)
 }
     
 // our inference loop is run twice as two different versions: once for finding outlines (findOutlines), and one for finding colors (findShapeColors)
@@ -124,35 +132,40 @@ var outliner = function(trueEdges) {
   var sampleDiversity = 10000
   // var distanceNoise = 0.001
 
-  // var counter = []
-  // var showEveryN = 100
+//   var counter = []
+//   var showEveryN = 100
   var findOutlines = function() {
-    var numShapes = 15 // randomInteger(11)
+    var numShapes = 10 // randomInteger(11)
     
     // inside makeRandShapes, conditioning inference using edges data (integrating lower-level contrast information)
-    var shapes = makeRandShapes(numShapes, [], trueEdges, 0, sampleDiversity)
+    var randShapes = makeRandShapes(numShapes, [], trueEdges, 0, sampleDiversity)
+    // if not show, canvas is still being made inside makeRandShapes and factor is happening there
+    
+    // conditioning inference using edges data (integrating lower-level contrast information)
+//     var randShapes = makeRandShapes(numShapes, [])
+    var shapes = randShapes.shapes
+    var shapeType = randShapes.shapeType
     var shapeColors = repeat(numShapes, function() {return undefined}) // dummy
 
-    // var show = counter.length % showEveryN == 0
-    // if (show) {
-    //   var canvas1 = Draw(imgWidth, imgHeight, true)
-    //   canvas1.rectangle(0,0,imgWidth,imgHeight,'white','white')
-    //   drawShapes(canvas1, [shapes, shapeColors])
-    // //   var score = -(canvas1.distance(trueEdges)) // + gaussian(0, distanceNoise))
-    // // //   display(score)
-    // //   factor(score/sampleDiversity)
-    // }
-    // // if not show, canvas is still being made inside makeRandShapes and factor is happening there
+//     var show = counter.length % showEveryN == 0
+//     if (show) {
+//       var canvas1 = Draw(imgWidth, imgHeight, true)
+//       canvas1.rectangle(0,0,imgWidth,imgHeight,'white','white')
+//       drawShapes(canvas1, {shapes, shapeColors})
+//       var score = -(canvas1.distance(trueEdges)) // + gaussian(0, distanceNoise))
+//     // //   display(score)
+//       factor(score/sampleDiversity)
+//     }
 
-    // counter.push(1)
+//     counter.push(1)
     
-    return [shapes, shapeColors]
+    return {shapes, shapeColors, shapeType, numShapes}
   }
   return findOutlines
 }
 
 var painter = function(targetimage, outlinesDist) {
-  var sampleDiversity = 10000
+  var sampleDiversity = 100
   var distanceNoise = 0.001
 
   var counter = []
@@ -163,7 +176,7 @@ var painter = function(targetimage, outlinesDist) {
     // condition inference using outlines data (integrating outlines, based on lower-level contrast information)
     // observe(outlinesDist, [shapes, repeat(numShapes, function() {return undefined})])
     
-    var shapes = sample(outlinesDist)[0]
+    var shapes = sample(outlinesDist).shapes
     // var shapes = foundOutlines[0]
 
     var show = counter.length % showEveryN == 0
@@ -172,18 +185,18 @@ var painter = function(targetimage, outlinesDist) {
     // condition inference using target image data (integrating lower-level color information)
     var numShapes = shapes.length
     var shapeColors = makeColors(numShapes, [])
-    drawShapes(canvas1, [shapes, shapeColors])
+    drawShapes(canvas1, { shapes, shapeColors })
     var score = -(canvas1.distance(targetimage)) // + gaussian(0, distanceNoise))
   //   display(score)
     factor(score/sampleDiversity)
 
-    if (!show) {
-      canvas1.destroy()
-    }
+//     if (!show) {
+//       canvas1.destroy()
+//     }
 
     counter.push(1)
     
-    return [shapes, shapeColors]
+    return {shapes, shapeColors}
   }
   return findShapeColors
 }
@@ -194,17 +207,18 @@ var painter = function(targetimage, outlinesDist) {
 var imgWidth = 50
 var imgHeight = 50
 var targetimage = Draw(imgWidth, imgHeight, true)
-var imagePath = 'assets/beach.png'
-loadImage(targetimage, imagePath)
+var imagePath = 'assets/flowers.png'
+loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
 
 // 1. Find outlines
 
 // place outlines onto image based on edges detected by contrast changes
 var trueEdges = Draw(imgWidth, imgHeight, true)
-var edgeThreshold = 2 // higher threshold means less sensitive, i.e. less edges
+var edgeThreshold = 15 // higher threshold means less sensitive, i.e. less edges
 var edgePixels = detectEdges(targetimage, edgeThreshold)
 trueEdges.setImageData(edgePixels)
 
+// var outlines = Infer({ method: 'MCMC', samples: 800, model: outliner(trueEdges), onlyMAP: false })
 var outlines = Infer({ method: 'SMC', particles: 100, rejuvSteps: 0, model: outliner(trueEdges), onlyMAP: false })
 
 // draw best outlines
@@ -218,8 +232,12 @@ var chooseABest = function(dist) {
   return best
 }
 var bestOutlines = chooseABest(outlines)
+
 // var bestOutlines = sample(outlines) // if onlyMap: true
 drawShapes(Draw(imgWidth, imgHeight, true), bestOutlines)
+display('shape type:')
+viz(marginalize(outlines, 'shapeType'))
+display('')
 
 // sample from the resulting distribution a few times to assess how specific the results are (assess variance)
 drawShapes(Draw(imgWidth, imgHeight, true), sample(outlines))

@@ -125,7 +125,7 @@
             rect.rotate(angle, (x1 + x2) / 2, (y1 + y2) / 2); // rotate about the center of the rectangle
             this.redraw();
         };
-        DrawObject.prototype.circle = function(x, y, radius, stroke='black', fill='black', opacity=1, strokeWidth=1){
+        DrawObject.prototype.circle = function (x, y, radius, stroke='black', fill='black', opacity=1, strokeWidth=1) {
             var point = this.newPoint(x, y);
             var circle = new this.paper.Path.Circle(point, radius);
             circle.fillColor = (fill == 'none' ? new paper.Color(1, 1, 1, 0) : fill);
@@ -146,6 +146,21 @@
             tri.opacity = opacity;
             this.redraw();
         };
+
+        // modified from draw.js to have raster image fill the canvas
+        function loadImage(s, k, a, drawObject, url, fill) {
+            // Synchronous loading - only continue with computation once image is loaded
+            var context = drawObject.canvas.getContext('2d');
+            var imageObj = new Image();
+            imageObj.onload = function() {
+                var raster = new drawObject.paper.Raster(imageObj);
+                raster.position = drawObject.paper.view.center;
+                raster.fitBounds(drawObject.paper.view.bounds, fill);
+                drawObject.redraw();
+                resumeTrampoline(function() { return k(s) });
+            };
+            imageObj.src = url;
+        }
 
         // from dippl.org/examples/vision.html, used by the DrawObject.prototype.distance function
         function euclideanDistance(v1, v2){
