@@ -2,6 +2,10 @@
 
 var seed = randomInteger(1000000000)
 // var seed = 987908295 // for flowers image, found a circle well!
+// 275995940 for beach - edgethreshold 5
+//var seed = 312150810
+// var seed = 411143223 // for beach, the screenshotted one
+// var seed = 14163694 // for geometric1
 util.seedRNG(seed)
 display('seed is ' + seed)
 
