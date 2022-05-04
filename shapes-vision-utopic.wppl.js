@@ -65,16 +65,50 @@ var makeColors = function(n, colors, getStandard) {
 }
 
 var getStandardColors = function() {
-  Infer({ method: 'enumerate', model() {
-    var color = makeColors(1, [], true)
-//     display(util.prettyJSON(color))
-    var colorString = "rgb("+color[0]+","+color[1]+","+color[2]+")"
-    var stroke = colorString
-    var fill = colorString
-    Draw(25, 25, true).rectangle(0, 0, 25, 25, stroke, fill, 1.0, 0, 30)
-  }})
-}
-getStandardColors()
+    var colors = []
+    Infer({ method: 'enumerate', model() {
+      var color = makeColors(1, [], true)
+  //     display(util.prettyJSON(color))
+      var colorString = "rgb("+color[0]+","+color[1]+","+color[2]+")"
+      // var stroke = colorString
+      // var fill = colorString
+      // Draw(25, 25, true).rectangle(0, 0, 25, 25, stroke, fill, 1.0, 0, 30)
+      colors.push(colorString)
+    }})
+    return colors 
+  }
+var drawSwatchGrid = function(colors, rows, cols) {
+    var width = 200
+    var height = 200
+    var swatchWidth = width / cols
+    var swatchHeight = height / rows
+    var shapeColors = mapIndexed(function(i, color) {
+      return {
+        fill: color,
+        stroke: color,
+        opacity: 1.0
+      }
+      // canvas.rectangle(x*swatchWidth, y*swatchHeight, swatchWidth, swatchHeight, stroke, fill, 1.0, 0, 30)
+    }, colors)
+    display(colors.length)
+    var shapes = mapIndexed(function(i, color) {
+      var x = i % cols
+      var y = Math.floor(i / cols)
+      return {
+        // x: x*swatchWidth + swatchWidth/2,
+        // y: y*swatchHeight + swatchHeight/2,
+        // shape: 'circle'
+        // radius: swatchWidth/2,
+  
+        x: swatchWidth + x*swatchWidth,
+        y: swatchHeight + y*swatchHeight,
+        dims: [swatchWidth, swatchHeight],
+        shape: 'rect'
+      }
+    }, colors)
+    drawShapes(Draw(width, height, true), { shapes, shapeColors })
+  }
+  drawSwatchGrid(getStandardColors(), 25, 5)
 
 var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity) { 
   // categorical distribution of the shape type is 
