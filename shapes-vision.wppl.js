@@ -45,17 +45,21 @@ var rgbFix = function(value) {
   return value
 }
 
-var makeColors = function(n, colors) {
+var makeColors = function(n, colors, getStandard) {
   if (n == 0) return colors
 
   var redVal = [255, 200, 235, 120, 0][randomInteger(5)]
-  var noisedRedVal = rgbFix(redVal + gaussian(0, 10))
+  var noisedRedVal = rgbFix(redVal + (getStandard ? 0 : gaussian(0, 10)))
 
   var greenVal = [0, 100, 235, 120, 50][randomInteger(5)]
-  var noisedGreenVal = rgbFix(greenVal + gaussian(0, 10))
+  var noisedGreenVal = rgbFix(greenVal + (getStandard ? 0 : gaussian(0, 10)))
 
   var blueVal = [0, 10, 235, 190, 255][randomInteger(5)]
-  var noisedBlueVal = rgbFix(blueVal + gaussian(0, 10))
+  var noisedBlueVal = rgbFix(blueVal + (getStandard ? 0 : gaussian(0, 10)))
+
+  if (getStandard) {
+    return [redVal, greenVal, blueVal];
+  }
 
   var colorString = "rgb("+noisedRedVal+","+noisedGreenVal+","+noisedBlueVal+")"
   var color = colorString
@@ -68,6 +72,18 @@ var makeColors = function(n, colors) {
   }]))
 
 }
+
+var getStandardColors = function() {
+  Infer({ method: 'enumerate', model() {
+    var color = makeColors(1, [], true)
+//     display(util.prettyJSON(color))
+    var colorString = "rgb("+color[0]+","+color[1]+","+color[2]+")"
+    var stroke = colorString
+    var fill = colorString
+    Draw(25, 25, true).rectangle(0, 0, 25, 25, stroke, fill, 1.0, 0, 30)
+  }})
+}
+getStandardColors()
 
 var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity) { 
   // categorical distribution of the shape type is 
