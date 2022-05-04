@@ -40,14 +40,14 @@ var rgbFix = function(value) {
 var makeColors = function(n, colors, getStandard) {
   if (n == 0) return colors
 
-  var redVal = [255, 200, 120, 60, 0][randomInteger(5)]
-  var noisedRedVal = rgbFix(redVal + (getStandard ? 0 : gaussian(0, 30)))
+  var redVal = [0, 60, 120, 200, 255][randomInteger(5)]
+  var noisedRedVal = rgbFix(redVal + (getStandard ? 0 : uniform(-50, 50)))
 
   var greenVal = [0, 50, 100, 140, 235][randomInteger(5)]
-  var noisedGreenVal = rgbFix(greenVal + (getStandard ? 0 : gaussian(0, 30)))
+  var noisedGreenVal = rgbFix(greenVal + (getStandard ? 0 : uniform(-50, 50)))
 
   var blueVal = [0, 60, 120, 200, 255][randomInteger(5)]
-  var noisedBlueVal = rgbFix(blueVal + (getStandard ? 0 : gaussian(0, 30)))
+  var noisedBlueVal = rgbFix(blueVal + (getStandard ? 0 : uniform(-50, 50)))
   
   if (getStandard) {
     return [redVal, greenVal, blueVal];
@@ -118,18 +118,18 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
   var shapeType = categorical({ ps: [rectP, circleP, triP], vs: ['rect', 'circle', 'tri'] })
 
   // x is distance from left edge, y is distance from top edge
-  var x = randomInteger(imgWidth+5*2)-5
-  var y = randomInteger(imgHeight+5*2)-5
+  var x = uniform(-5, imgWidth+5)
+  var y = uniform(-5, imgHeight+5)
   
-  var dim1 = uniform(0, imgWidth)
-  var dim2 = shapeType === 'circle' ? dim1 : uniform(0, imgHeight)
+  var dim1 = uniform(0, imgWidth+10)
+  var dim2 = shapeType === 'circle' ? dim1 : uniform(0, imgHeight+10)
 
-  var dim1b = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(0, imgWidth)) : 0
-  var dim2b = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(0, imgHeight)) : 0
+  var dim1b = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(0, imgWidth+10)) : 0
+  var dim2b = shapeType === 'tri' ? ((flip() ? -1 : 1) * uniform(0, imgHeight+10)) : 0
   
   // while we can get all we need from just between 0 and 90,
   // allowing for values between 0 and 360 gives the model a bit more flexibility to be able to rotate by changing just one parameter
-  var angle = shapeType === 'rect' ? randomInteger(360) : 0
+  var angle = shapeType === 'rect' ? uniform(0, 90) : 0
   
 //   var createShape = mem(function(type, n) {
 //     return Infer({ method: 'forward', samples: 30, model() {
@@ -188,13 +188,13 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
 // we are doing this inference step jointly for sake of illustration of what could maybe be possible (because it looks nicer)
 
 var painter = function(targetimage) {
-  var sampleDiversity = 100
+  var sampleDiversity = 10000
 //   var distanceNoise = 0.001
 
   var counter = []
   var showEveryN = 100
   var findShapeColors = function() {
-    var numShapes = 12
+    var numShapes = randomInteger(20)
     var randShapes = makeRandShapes(numShapes, [])
     var shapes = randShapes.shapes
     var shapeType = randShapes.shapeType
@@ -225,13 +225,13 @@ var painter = function(targetimage) {
 var imgWidth = 50
 var imgHeight = 50
 var targetimage = Draw(imgWidth, imgHeight, true)
-var imagePath = 'assets/watermelon.png'
+var imagePath = 'assets/geometric1.png'
 loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
 
 // Find shapes and colors
 
 // fill in the shapes
-var bestColoredShapes = Infer({ method: 'MCMC', samples: 800, model: painter(targetimage) })
+var bestColoredShapes = Infer({ method: 'MCMC', samples: 10000, model: painter(targetimage) })
 // samples should not be a multiple of showEveryN, since it might be causing the canvas to be destroyed and then Draw tries to connect to that one
 
 display('done!')
@@ -239,9 +239,20 @@ display('done!')
 // TODO: scale up all outputs?
 
 // sample from the resulting distribution a few times to assess how specific the results are (assess variance)
-drawShapes(Draw(imgWidth, imgHeight, true), sample(bestColoredShapes))
-drawShapes(Draw(imgWidth, imgHeight, true), sample(bestColoredShapes))
-drawShapes(Draw(imgWidth, imgHeight, true), sample(bestColoredShapes))
+var finalResultCanvas = Draw(imgWidth, imgHeight, true)
+var finalResultSamples = repeat(10, function() {
+  var s = sample(bestColoredShapes)
+  var shapeColors = map(function(color) {
+    // change opacity
+    return {
+      fill: color.fill,
+      stroke: color.stroke,
+      opacity: 1/10
+    }
+  }, s.shapeColors)
+  var shapes = s.shapes
+  drawShapes(finalResultCanvas, { shapes, shapeColors })
+})
 
 // show the target image again for comparison
 loadImage(Draw(imgWidth, imgHeight, true), imagePath)
