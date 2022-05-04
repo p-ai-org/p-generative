@@ -1,11 +1,13 @@
-// old comments block now in shapes-vision-notes.txt
 
 var seed = randomInteger(1000000000)
 // var seed = 987908295 // for flowers image, found a circle well!
 // 275995940 for beach - edgethreshold 5
 //var seed = 312150810
+// 613117941 for redspiral threshold 15
+// 240034548 redspiral threshold 25, num shapes 20
 // var seed = 411143223 // for beach, the screenshotted one
 // var seed = 14163694 // for geometric1
+// 492476149 - geometric 2
 util.seedRNG(seed)
 display('seed is ' + seed)
 
@@ -89,7 +91,9 @@ var makeRandShapes = function(n, shapes, targetImage, prevScore, sampleDiversity
   var angleTrue = shapeType === 'rect' ? randomInteger(360) : 0
   
   var createShape = mem(function(type, n) {
-    return Infer({ method: 'forward', samples: 30, model() {
+    return Infer({ method: 'forward', samples: 
+                  
+                  30, model() {
       var x = xTrue + uniform(-dim1True/3, dim1True/3)
       var y = yTrue + uniform(-dim2True/3, dim2True/3)
       
@@ -151,7 +155,7 @@ var outliner = function(trueEdges) {
   //   var counter = []
   //   var showEveryN = 100
   var findOutlines = function() {
-    var numShapes = 10 // randomInteger(11)
+    var numShapes = 20 // randomInteger(11)
 
     // inside makeRandShapes, conditioning inference using edges data (integrating lower-level contrast information)
     var randShapes = makeRandShapes(numShapes, [], trueEdges, 0, sampleDiversity)
@@ -219,19 +223,19 @@ var painter = function(targetimage, outlinesDist) {
 var imgWidth = 50
 var imgHeight = 50
 var targetimage = Draw(imgWidth, imgHeight, true)
-var imagePath = 'assets/watermelon.png'
+var imagePath = 'assets/redspiral.png'
 loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
 
 // 1. Find outlines
 
 // place outlines onto image based on edges detected by contrast changes
 var trueEdges = Draw(imgWidth, imgHeight, true)
-var edgeThreshold = 15 // higher threshold means less sensitive, i.e. less edges
+var edgeThreshold = 25 // higher threshold means less sensitive, i.e. less edges
 var edgePixels = detectEdges(targetimage, edgeThreshold)
 trueEdges.setImageData(edgePixels)
 
 // var outlines = Infer({ method: 'MCMC', samples: 800, model: outliner(trueEdges), onlyMAP: false })
-var outlines = Infer({ method: 'SMC', particles: 30, rejuvSteps: 6, model: outliner(trueEdges), onlyMAP: false })
+var outlines = Infer({ method: 'SMC', particles: 15, rejuvSteps: 6, model: outliner(trueEdges), onlyMAP: false })
 
 // draw best outlines
 var chooseABest = function(dist) {
@@ -267,7 +271,7 @@ Draw(imgWidth, imgHeight, true).setImageData(edgePixels)
 // 2. Find colors
 
 // fill in the shapes
-var bestColoredShapes = Infer({ method: 'MCMC', samples: 301, model: painter(targetimage, outlines) })
+var bestColoredShapes = Infer({ method: 'MCMC', samples: 500, model: painter(targetimage, outlines) })
 // samples should not be a multiple of showEveryN, since it might be causing the canvas to be destroyed and then Draw tries to connect to that one
 
 display('done!')
