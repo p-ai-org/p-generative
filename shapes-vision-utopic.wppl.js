@@ -225,13 +225,13 @@ var painter = function(targetimage) {
 var imgWidth = 50
 var imgHeight = 50
 var targetimage = Draw(imgWidth, imgHeight, true)
-var imagePath = 'assets/geometric1.png'
+var imagePath = 'assets/geometric2.png'
 loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
 
 // Find shapes and colors
 
 // fill in the shapes
-var bestColoredShapes = Infer({ method: 'MCMC', samples: 10000, model: painter(targetimage) })
+var bestColoredShapes = Infer({ method: 'MCMC', samples: 10000, callbacks: [editor.MCMCProgress()], model: painter(targetimage) })
 // samples should not be a multiple of showEveryN, since it might be causing the canvas to be destroyed and then Draw tries to connect to that one
 
 display('done!')
