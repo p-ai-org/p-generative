@@ -1,0 +1,18 @@
+{
+    "name": "p-generative-headers",
+    "version": "0.0.1",
+    "webppl": {
+        "headers": [
+            "headers.js"
+        ]
+    },
+    "main": "headers.js",
+    "private": true,
+    "dependencies": {
+        "canvas": "^2.9.1",
+        "mkdirp": "^1.0.4",
+        "paper-jsdom-canvas": "^0.12.15",
+        "require-from-url": "^3.1.3",
+        "webppl": "^0.9.15"
+    }
+}

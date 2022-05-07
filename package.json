@@ -1,4 +1,17 @@
 {
+    "name": "p-generative",
+    "version": "0.0.1",
+    "description": "Exploring Generative Models of Cognition as Generative Art (Spring 2022)",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/p-ai-org/p-generative.git"
+    },
+    "scripts": {
+        "shapes-vision-utopic": "webppl shapes-vision-utopic.wppl --require ./local-webppl-headers 2> webppl-errors.log",
+        "debug-shapes-vision-utopic": "node inspect `which webppl` shapes-vision-utopic.wppl --require ./local-webppl-headers"
+    },
     "private": true,
-    "name": "p-generative"
+    "dependencies": {
+        "webppl": "^0.9.15"
+    }
 }

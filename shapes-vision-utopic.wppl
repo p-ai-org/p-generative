@@ -1,12 +1,11 @@
-const requireFromUrl = require('require-from-url/sync')
-const paper = requireFromUrl('https://probmods.org/assets/js/paper-full.js')
-requireFromUrl('https://probmods.org/assets/js/draw.js')
-// requireFromUrl('https://probmods.org/assets/js/box2d.js')
-
-var seed = randomInteger(1000000000)
+var seed = argv.seed || randomInteger(1000000000)
 // seed 805225545 for watermelon
 util.seedRNG(seed)
 display('seed is ' + seed)
+
+var outputDest = setOutputFolder(argv.dest || 'outputs/')
+display('output destination is ' + outputDest)
+
 
 var drawShapes = function(canvas, shapeAndColorData) {
   var shapes = shapeAndColorData.shapes;
@@ -83,8 +82,8 @@ var getStandardColors = function() {
     return colors 
   }
 var drawSwatchGrid = function(colors, rows, cols) {
-    var width = 200
-    var height = 200
+    var width = 50
+    var height = 50
     var swatchWidth = width / cols
     var swatchHeight = height / rows
     var shapeColors = mapIndexed(function(i, color) {
@@ -111,7 +110,10 @@ var drawSwatchGrid = function(colors, rows, cols) {
         shape: 'rect'
       }
     }, colors)
-    drawShapes(Draw(width, height, true), { shapes, shapeColors })
+    // debugger;
+    var swatchGridCanvas = Draw(width, height)
+    drawShapes(swatchGridCanvas, { shapes, shapeColors })
+    saveCanvas(swatchGridCanvas, 'standard-colors-swatchgrid.png')
   }
   drawSwatchGrid(getStandardColors(), 25, 5)
 
@@ -199,7 +201,7 @@ var painter = function(targetimage) {
   var counter = []
   var showEveryN = 100
   var findShapeColors = function() {
-    var numShapes = randomInteger(20)
+    var numShapes = randomInteger(10)
     var randShapes = makeRandShapes(numShapes, [])
     var shapes = randShapes.shapes
     var shapeType = randShapes.shapeType
@@ -207,10 +209,15 @@ var painter = function(targetimage) {
     
     // condition inference using target image data (integrating lower-level color information)
     var show = counter.length % showEveryN == 0
-    var canvas1 = Draw(imgWidth, imgHeight, show)
+    var canvas1 = Draw(imgWidth, imgHeight)
     drawShapes(canvas1, { shapes, shapeColors })
+    // display(util.prettyJSON(canvas1.toArray()))
+    if (show) {
+      saveCanvas(canvas1, 'preview-' + counter.length + '.png')
+    }
+
     var score = -(canvas1.distance(targetimage)) // + gaussian(0, distanceNoise))
-//       display(score)
+    // display(score.toFixed(100))
     factor(score/sampleDiversity)
 
     if (!show) {
@@ -229,14 +236,16 @@ var painter = function(targetimage) {
 // load input image
 var imgWidth = 50
 var imgHeight = 50
-var targetimage = Draw(imgWidth, imgHeight, true)
+var targetimage = Draw(imgWidth, imgHeight)
 var imagePath = 'assets/geometric1.png'
 loadImage(targetimage, imagePath, true) // third param is "fill" (if false, image is contained, if true, image fills bounds)
+saveCanvas(targetimage, 'original-image.png')
+// display(JSON.stringify(targetimage.toArray().map(function(v) { v.toFixed(5) }).slice(0,50)))
 
 // Find shapes and colors
 
 // fill in the shapes
-var bestColoredShapes = Infer({ method: 'MCMC', samples: 10000, model: painter(targetimage) })
+var bestColoredShapes = Infer({ method: 'MCMC', samples: 1000, model: painter(targetimage), onlyMAP: true })
 // samples should not be a multiple of showEveryN, since it might be causing the canvas to be destroyed and then Draw tries to connect to that one
 
 display('done!')
@@ -244,7 +253,7 @@ display('done!')
 // TODO: scale up all outputs?
 
 // sample from the resulting distribution a few times to assess how specific the results are (assess variance)
-var finalResultCanvas = Draw(imgWidth, imgHeight, true)
+var finalResultCanvas = Draw(imgWidth, imgHeight)
 var finalResultSamples = repeat(10, function() {
   var s = sample(bestColoredShapes)
   var shapeColors = map(function(color) {
@@ -258,9 +267,11 @@ var finalResultSamples = repeat(10, function() {
   var shapes = s.shapes
   drawShapes(finalResultCanvas, { shapes, shapeColors })
 })
+saveCanvas(finalResultCanvas, 'final-result.png')
 
-// show the target image again for comparison
-loadImage(Draw(imgWidth, imgHeight, true), imagePath)
+// can see the first image file!
+// // show the target image again for comparison
+// loadImage(Draw(imgWidth, imgHeight, true), imagePath)
 
 // // show the true edges again for comparison
 // Draw(imgWidth, imgHeight, true).setImageData(edgePixels)
